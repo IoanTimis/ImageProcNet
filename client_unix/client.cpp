@@ -50,6 +50,13 @@ int main() {
         return 1;
     }
 
+    // Trimite tipul de procesare
+    int operation;
+    std::cout << "Alege procesarea imaginii:\n1. Resize (50%)\n2. Grayscale\n3. Blur\nAlegere: ";
+    std::cin >> operation;
+    operation -= 1; // pentru a fi 0-indexed: 0=resize, 1=gray, 2=blur
+    send(sock_fd, &operation, sizeof(int), 0);
+
     // Trimite dimensiunea fisierului
     int size_to_send = static_cast<int>(file_size);
     send(sock_fd, &size_to_send, sizeof(int), 0);

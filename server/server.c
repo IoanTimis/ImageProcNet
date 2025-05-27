@@ -21,6 +21,7 @@ typedef struct {
     char filepath[256];
     int filesize;
     int client_fd;
+    int operation; // 0 = resize, 1 = grayscale, 2 = blur
 } Task;
 
 typedef struct {
@@ -111,7 +112,21 @@ void* worker_thread(void* arg) {
         clock_gettime(CLOCK_MONOTONIC, &start);
 
         char cmd[1024];
-        snprintf(cmd, sizeof(cmd), "convert \"%s\" -resize 50%% \"%s\"", t.filepath, processed_path);
+        switch (t.operation) {
+            case 0:
+                snprintf(cmd, sizeof(cmd), "convert \"%s\" -resize 50%% \"%s\"", t.filepath, processed_path);
+                break;
+            case 1:
+                snprintf(cmd, sizeof(cmd), "convert \"%s\" -colorspace Gray \"%s\"", t.filepath, processed_path);
+                break;
+            case 2:
+                snprintf(cmd, sizeof(cmd), "convert \"%s\" -blur 0x8 \"%s\"", t.filepath, processed_path);
+                break;
+            default:
+                fprintf(stderr, "[WORKER] Operatie necunoscuta: %d\n", t.operation);
+                close(t.client_fd);
+                continue;
+        }
         int ret = system(cmd);
         if (ret != 0) {
             perror("[WORKER] Eroare la procesare imagine");
@@ -179,8 +194,14 @@ void* client_handler(void* arg) {
     free(arg);
 
     char buffer[4096];
+    int operation_type;
+    // Primeste tipul de procesare
+    if (recv(client_fd, &operation_type, sizeof(int), 0) <= 0) {
+        perror("[SERVER] Eroare primire operatie");
+        close(client_fd);
+        return NULL;
+    }
     int file_size;
-
     // Primeste dimensiune
     if (recv(client_fd, &file_size, sizeof(int), 0) <= 0) {
         perror("[SERVER] Eroare primire dimensiune");
@@ -211,11 +232,12 @@ void* client_handler(void* arg) {
     // nu inchidem socketul, il pasam catre worker
 
 
-    // Adauga in coada
+    // Adauga in coada cu operatia primita anterior
     Task t;
     strncpy(t.filepath, path, sizeof(t.filepath));
     t.filesize = file_size;
     t.client_fd = client_fd;
+    t.operation = operation_type;
     enqueue(t);
 
 
