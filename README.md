@@ -50,6 +50,7 @@ Proiectul demonstreaza gestionarea comunicatiei intre procese prin socket TCP si
 - `gcc` cu suport pentru `pthread`
 - ImageMagick instalat (`convert`)
 - Fisiere `.jpg` pentru testare
+- Libraria tkinter (pe Ubuntu/Debian): `sudo apt-get install python3-tk`
 
 ## In lucru
 
